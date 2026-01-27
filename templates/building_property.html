@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>公寓财产管理</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .container { max-width: 1200px; }
+        .form-group { margin-bottom: 1rem; }
+        .pagination { justify-content: center; }
+        .header-actions { margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center header-actions">
+        <h2>公寓财产管理</h2>
+        <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+            <i class="bi bi-house-door"></i> 回到首页
+        </a>
+    </div>
+
+    <!-- 添加按钮 -->
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPropertyModal">
+        <i class="bi bi-plus-circle"></i> 添加公寓财产
+    </button>
+
+    <!-- 筛选表单 -->
+    <form id="filterForm" class="mt-4 row g-3" method="GET" action="{{ url_for('building_property_management') }}">
+        <div class="col-md-3">
+            <label for="status" class="form-label">财产状态</label>
+            <select class="form-control" id="status" name="status">
+                <option value="">全部状态</option>
+                {% for status in status_options %}
+                <option value="{{ status }}" {% if current_status == status %}selected{% endif %}>{{ status }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="location" class="form-label">存放位置</label>
+            <select class="form-control" id="location" name="location">
+                <option value="">全部位置</option>
+                {% for loc in location_options %}
+                <option value="{{ loc }}" {% if current_location == loc %}selected{% endif %}>{{ loc }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary">筛选</button>
+            <a href="{{ url_for('building_property_management') }}" class="btn btn-outline-secondary ms-2">重置</a>
+        </div>
+    </form>
+
+    <!-- 数据列表 -->
+    <table class="table table-striped mt-4">
+        <thead>
+            <tr>
+                <th>财产ID</th>
+                <th>名称</th>
+                <th>型号</th>
+                <th>存放位置</th>
+                <th>状态</th>
+                <th>登记时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for prop in properties.items %}
+            <tr data-pro-id="{{ prop.pro_id }}">
+                <td>{{ prop.pro_id }}</td>
+                <td>{{ prop.name }}</td>
+                <td>{{ prop.model }}</td>
+                <td>{{ prop.location }}</td>
+                <td>
+                    {% if prop.status == '正常' %}
+                    <span class="badge bg-success">{{ prop.status }}</span>
+                    {% elif prop.status == '维修中' %}
+                    <span class="badge bg-warning">{{ prop.status }}</span>
+                    {% else %}
+                    <span class="badge bg-danger">{{ prop.status }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ prop.bpro_time.strftime('%Y-%m-%d') if prop.bpro_time else '-' }}</td>
+                <td>
+                    <button class="btn btn-warning btn-sm" onclick="editProperty('{{ prop.pro_id }}')">
+                        <i class="bi bi-pencil"></i> 编辑
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="openDeleteModal('{{ prop.pro_id }}')">
+                        <i class="bi bi-trash"></i> 删除
+                    </button>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-center py-3">暂无数据</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- 分页组件 -->
+    <nav aria-label="Page navigation">
+        <ul class="pagination">
+            <li class="page-item {% if not properties.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('building_property_management',
+                    page=properties.prev_num, status=current_status, location=current_location) }}">上一页</a>
+            </li>
+            {% for p in properties.iter_pages(left_edge=2, left_current=2, right_current=3, right_edge=2) %}
+                {% if p %}
+                    <li class="page-item {% if p == properties.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('building_property_management',
+                            page=p, status=current_status, location=current_location) }}">{{ p }}</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+            {% endfor %}
+            <li class="page-item {% if not properties.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('building_property_management',
+                    page=properties.next_num, status=current_status, location=current_location) }}">下一页</a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- 添加模态框 -->
+    <div class="modal fade" id="addPropertyModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">添加公寓财产</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="addPropertyForm" method="POST" action="/add_building_property">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="pro_id" class="form-label">财产ID <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="pro_id" name="pro_id" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="name" class="form-label">名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="model" class="form-label">型号</label>
+                            <input type="text" class="form-control" id="model" name="model">
+                        </div>
+                        <div class="form-group">
+                            <label for="location" class="form-label">存放位置 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="location" name="location" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="status" class="form-label">状态 <span class="text-danger">*</span></label>
+                            <select class="form-control" id="status" name="status" required>
+                                <option value="正常">正常</option>
+                                <option value="维修中">维修中</option>
+                                <option value="报废">报废</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="bpro_time" class="form-label">登记时间</label>
+                            <input type="date" class="form-control" id="bpro_time" name="bpro_time"
+                                   value="{{ datetime.now().strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="notes" class="form-label">备注</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary" id="addSubmitBtn">提交</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑模态框 -->
+    <div class="modal fade" id="editPropertyModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">编辑公寓财产</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="editPropertyForm" method="POST" action="/edit_building_property">
+                    <label for="edit_pro_id" class="form-label">物品编号 <span class="text-danger">*</span></label>
+                    <input type="text" id="edit_pro_id" name="pro_id" >
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="edit_name" class="form-label">名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="edit_name" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_model" class="form-label">型号</label>
+                            <input type="text" class="form-control" id="edit_model" name="model">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_location" class="form-label">存放位置 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="edit_location" name="location" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_status" class="form-label">状态 <span class="text-danger">*</span></label>
+                            <select class="form-control" id="edit_status" name="status" required>
+                                <option value="正常">正常</option>
+                                <option value="维修中">维修中</option>
+                                <option value="报废">报废</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_bpro_time" class="form-label">登记时间</label>
+                            <input type="date" class="form-control" id="edit_bpro_time" name="bpro_time">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_notes" class="form-label">备注</label>
+                            <textarea class="form-control" id="edit_notes" name="notes" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary">保存修改</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除模态框 -->
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">确认删除</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>确定要删除财产 <span id="delete_pro_id" class="fw-bold"></span> 吗？此操作不可逆。</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // 存储当前操作的ID
+    let currentPropId = '';
+
+    // 编辑财产
+    async function editProperty(propId) {
+        try {
+            const response = await fetch(`/api/building_property/${propId}`, { credentials: 'include' });
+            const data = await response.json();
+            if (response.ok) {
+                document.getElementById('edit_pro_id').value = data.pro_id;
+                document.getElementById('edit_name').value = data.name;
+                document.getElementById('edit_model').value = data.model || '';
+                document.getElementById('edit_location').value = data.location;
+                document.getElementById('edit_status').value = data.status;
+                document.getElementById('edit_bpro_time').value = data.bpro_time || '';
+                document.getElementById('edit_notes').value = data.notes || '';
+                new bootstrap.Modal(document.getElementById('editPropertyModal')).show();
+            } else {
+                showToast('error', data.error || '获取数据失败');
+            }
+        } catch (e) {
+            showToast('error', '加载失败：' + e.message);
+        }
+    }
+
+    // 打开删除确认框
+    function openDeleteModal(propId) {
+        currentPropId = propId;
+        document.getElementById('delete_pro_id').textContent = propId;
+        new bootstrap.Modal(document.getElementById('deleteConfirmModal')).show();
+    }
+
+    // 确认删除
+    document.getElementById('confirmDeleteBtn').addEventListener('click', async function() {
+        if (!currentPropId) return;
+
+        try {
+            const response = await fetch(`/delete_building_property/${currentPropId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                showToast('success', data.message);
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showToast('error', data.message || '删除失败');
+            }
+        } catch (e) {
+            showToast('error', '操作失败：' + e.message);
+        } finally {
+            new bootstrap.Modal(document.getElementById('deleteConfirmModal')).hide();
+            currentPropId = '';
+        }
+    });
+
+    // 添加表单提交
+    document.getElementById('addPropertyForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const form = this;
+        const submitBtn = form.querySelector('#addSubmitBtn');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addPropertyModal'));
+
+        // 加载状态
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 提交中...';
+
+        try {
+            const response = await fetch('/add_building_property', {
+                method: 'POST',
+                body: new FormData(form),
+                credentials: 'include'
+            });
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                showToast('success', data.message);
+                form.reset();
+                modal.hide();
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showToast('error', data.message || '添加失败');
+            }
+        } catch (e) {
+            showToast('error', '操作失败：' + e.message);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '提交';
+        }
+    });
+
+    // 编辑表单提交
+    document.getElementById('editPropertyForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const form = this;
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editPropertyModal'));
+
+        try {
+            const response = await fetch('/edit_building_property', {
+                method: 'POST',
+                body: new FormData(form),
+                credentials: 'include'
+            });
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                showToast('success', data.message);
+                modal.hide();
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showToast('error', data.message || '更新失败');
+            }
+        } catch (e) {
+            showToast('error', '操作失败：' + e.message);
+        }
+    });
+
+    function showToast(type, message) {
+        // 简单示例，可根据实际情况实现toast提示
+        alert(`${type}: ${message}`);
+    }
+</script>
+</body>
+</html>

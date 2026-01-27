@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>寝室信息管理</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .container { max-width: 1200px; }
+        .form-group { margin-bottom: 1rem; }
+        .pagination { justify-content: center; }
+        .header-actions { margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center header-actions">
+        <h2>寝室信息管理</h2>
+        <!-- 首页跳转按钮 -->
+        <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+            <i class="bi bi-house-door"></i> 回到首页
+        </a>
+    </div>
+
+    <!-- 添加寝室按钮 -->
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDormitoryModal">
+        添加寝室
+    </button>
+
+    <!-- 添加寝室模态框 -->
+    <div class="modal fade" id="addDormitoryModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">添加寝室</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="addDormitoryForm" method="POST" action="/add_dormitory">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="dor_dno" class="form-label">寝室号</label>
+                            <input type="text" class="form-control" id="dor_dno" name="dor_dno" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="dor_price" class="form-label">价格</label>
+                            <input type="number" class="form-control" id="dor_price" name="dor_price" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="dor_fact" class="form-label">实际入住人数</label>
+                            <input type="number" class="form-control" id="dor_fact" name="dor_fact" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="dor_num" class="form-label">额定人数</label>
+                            <input type="number" class="form-control" id="dor_num" name="dor_num" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="bui_bno" class="form-label">楼栋号</label>
+                            <input type="text" class="form-control" id="bui_bno" name="bui_bno" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="dor_ds" class="form-label">描述</label>
+                            <input type="text" class="form-control" id="dor_ds" name="dor_ds">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary" id="addSubmitBtn">提交</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 筛选表单 -->
+    <form id="filterForm" class="mt-4 row g-3" method="GET" action="{{ url_for('dormitory_management') }}">
+        <div class="col-md-3">
+            <label for="bui_bno" class="form-label">楼栋</label>
+            <select class="form-control" id="bui_bno" name="bui_bno">
+                <option value="">全部楼栋</option>
+                {% for b in buildings %}
+                <option value="{{ b }}" {% if current_building == b %}selected{% endif %}>{{ b }}号楼</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="status" class="form-label">状态</label>
+            <select class="form-control" id="status" name="status">
+                <option value="">全部状态</option>
+                <option value="available" {% if current_status == 'available' %}selected{% endif %}>可入住（未满）</option>
+                <option value="full" {% if current_status == 'full' %}selected{% endif %}>已满</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary">筛选</button>
+            <a href="{{ url_for('dormitory_management') }}" class="btn btn-outline-secondary ms-2">重置</a>
+        </div>
+    </form>
+
+    <!-- 寝室列表 -->
+    <table class="table table-striped mt-4">
+        <thead>
+            <tr>
+                <th>寝室号</th>
+                <th>价格</th>
+                <th>实际入住人数</th>
+                <th>额定人数</th>
+                <th>楼栋</th>
+                <th>描述</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody id="dormitoryTableBody">
+            {% for dormitory in dormitories.items %}
+            <tr data-dor-dno="{{ dormitory.dor_dno }}">
+                <td>{{ dormitory.dor_dno }}</td>
+                <td>{{ dormitory.dor_price }}</td>
+                <td>{{ dormitory.dor_fact }}</td>
+                <td>{{ dormitory.dor_num }}</td>
+                <td>{{ dormitory.bui_bno }}号楼</td>
+                <td>{{ dormitory.dor_ds }}</td>
+                <td>
+                    <button class="btn btn-warning btn-sm" onclick="editDormitory('{{ dormitory.dor_dno }}')">编辑</button>
+                    <button onclick="openDeleteModal('{{ dormitory.dor_dno }}')" class="btn btn-danger">删除</button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" class="text-center py-3">暂无寝室数据</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- 分页组件 -->
+    <nav aria-label="Page navigation">
+        <ul class="pagination">
+            <li class="page-item {% if not dormitories.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('dormitory_management',
+                    page=dormitories.prev_num,
+                    bui_bno=current_building,
+                    status=current_status) }}">上一页</a>
+            </li>
+
+            {% for p in dormitories.iter_pages(left_edge=2, left_current=2, right_current=3, right_edge=2) %}
+                {% if p %}
+                    <li class="page-item {% if p == dormitories.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('dormitory_management',
+                            page=p,
+                            bui_bno=current_building,
+                            status=current_status) }}">{{ p }}</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+            {% endfor %}
+
+            <li class="page-item {% if not dormitories.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('dormitory_management',
+                    page=dormitories.next_num,
+                    bui_bno=current_building,
+                    status=current_status) }}">下一页</a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- 删除确认模态框 -->
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">确认删除</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>确定要删除寝室 <span id="dor_dno"></span> 吗？此操作不可逆。</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑寝室模态框 -->
+    <div class="modal fade" id="editDormitoryModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">编辑寝室</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="editDormitoryForm" method="POST" action="/edit_dormitory">
+                    <label for="edit_dor_dno" class="form-label">寝室号</label>
+                    <input type="text" id="edit_dor_dno" name="edit_dor_dno" >
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="edit_dor_price" class="form-label">价格</label>
+                            <input type="number" class="form-control" id="edit_dor_price" name="edit_dor_price" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_dor_fact" class="form-label">实际入住人数</label>
+                            <input type="number" class="form-control" id="edit_dor_fact" name="edit_dor_fact" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_dor_num" class="form-label">额定人数</label>
+                            <input type="number" class="form-control" id="edit_dor_num" name="edit_dor_num" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_bui_bno" class="form-label">楼栋号</label>
+                            <input type="text" class="form-control" id="edit_bui_bno" name="edit_bui_bno" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_dor_ds" class="form-label">描述</label>
+                            <input type="text" class="form-control" id="edit_dor_ds" name="edit_dor_ds">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary">保存修改</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // 添加寝室表单提交处理
+    document.getElementById('addDormitoryForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const form = this;
+        const submitBtn = form.querySelector('#addSubmitBtn');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addDormitoryModal'));
+
+        // 显示加载状态
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 提交中...';
+
+        // 初始化错误信息
+        let errorMessage = '';
+
+        try {
+            // 发送AJAX请求
+            const response = await fetch('/add_dormitory', {
+                method: 'POST',
+                body: new FormData(form),
+                credentials: 'include'
+            });
+
+            // 处理HTTP状态码（不使用throw，直接判断并设置错误信息）
+            if (!response.ok) {
+                errorMessage = `HTTP错误: ${response.status}`;
+            } else {
+                // 解析响应数据
+                let data;
+                try {
+                    data = await response.json();
+                } catch (parseError) {
+                    const text = await response.text();
+                    errorMessage = `解析响应失败: ${text.substring(0, 100)}...`;
+                }
+
+                // 处理业务逻辑
+                if (!errorMessage) {
+                    if (data.success) {
+                        // 成功提示
+                        showToast('success', data.message);
+                        form.reset();
+                        modal.hide();
+                        // 刷新寝室列表
+                        setTimeout(() => window.location.reload(), 1000);
+                    } else {
+                        errorMessage = data.message; // 业务错误信息
+                    }
+                }
+            }
+        } catch (error) {
+            // 捕获网络等其他错误
+            errorMessage = `操作失败: ${error.message}`;
+        } finally {
+            // 恢复按钮状态
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '提交';
+
+            // 显示错误信息（如果有）
+            if (errorMessage) {
+                showToast('error', errorMessage);
+            }
+        }
+    });
+
+    // 存储当前要删除的寝室号
+    let currentDeleteDno = '';
+
+    // 打开删除确认模态框
+    function openDeleteModal(dno) {
+        console.log("打开删除模态框，寝室号:", dno);
+        currentDeleteDno = dno;
+        document.getElementById('dor_dno').textContent = dno;
+        new bootstrap.Modal(document.getElementById('deleteConfirmModal')).show();
+    }
+
+    // 确认删除按钮的点击事件
+    document.getElementById('confirmDeleteBtn').addEventListener('click', async function() {
+        console.log("点击确认删除，当前寝室号:", currentDeleteDno);
+        if (!currentDeleteDno) return;
+
+        try {
+            const response = await fetch(`/delete_dormitory/${currentDeleteDno}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+
+            const data = await response.json();
+            console.log("删除响应:", data);
+
+            if (response.ok) {
+                showToast('success', data.message);
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showToast('error', data.message || `删除失败（${response.status}）`);
+            }
+
+            // 关闭模态框
+            bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal')).hide();
+            currentDeleteDno = '';  // 重置当前寝室号
+        } catch (error) {
+            console.error("删除错误:", error);
+            showToast('error', '网络错误：' + error.message);
+        }
+    });
+
+    // 编辑寝室逻辑
+    async function editDormitory(dno) {
+        try {
+            const response = await fetch(`/api/dormitory/${dno}`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP错误: ${response.status}`);
+            }
+
+            const dormitory = await response.json();
+            console.log("解析后的寝室数据:", dormitory);
+
+            // 填充表单
+            document.getElementById('edit_dor_dno').value = dormitory.dor_dno;
+            document.getElementById('edit_dor_price').value = dormitory.dor_price;
+            document.getElementById('edit_dor_fact').value = dormitory.dor_fact;
+            document.getElementById('edit_dor_num').value = dormitory.dor_num;
+            document.getElementById('edit_bui_bno').value = dormitory.bui_bno;
+            document.getElementById('edit_dor_ds').value = dormitory.dor_ds;
+
+            // 显示模态框
+            new bootstrap.Modal(document.getElementById('editDormitoryModal')).show();
+        } catch (error) {
+            showToast('error', '操作失败：' + error.message);
+        }
+    }
+
+    // 编辑表单提交
+    document.getElementById('editDormitoryForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const formData = new FormData(form);
+
+        // 显示加载状态
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 保存中...';
+
+        try {
+            // 打印表单数据用于调试
+            console.log("提交的表单数据：");
+            for (const [key, value] of formData.entries()) {
+                console.log(`${key}: ${value}`);
+            }
+
+            const response = await fetch('/edit_dormitory', {
+                method: 'POST',
+                body: formData,
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    showToast('success', '修改成功！');
+                    bootstrap.Modal.getInstance(document.getElementById('editDormitoryModal')).hide();
+                    // 刷新页面
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showToast('error', '修改失败：' + (data.message || '未知错误'));
+                }
+            } else {
+                const errorText = await response.text();
+                showToast('error', `请求失败: ${response.status} - ${errorText}`);
+            }
+        } catch (error) {
+            console.error("提交错误:", error);
+            showToast('error', '网络错误：' + error.message);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '保存修改';
+        }
+    });
+
+    // 显示通知提示
+    function showToast(type, message) {
+        // 创建提示元素
+        const toastDiv = document.createElement('div');
+        toastDiv.className = `toast position-fixed top-0 end-0 m-3 ${type === 'success' ? 'bg-success' : 'bg-danger'} text-white`;
+        toastDiv.setAttribute('role', 'alert');
+        toastDiv.setAttribute('aria-live', 'assertive');
+        toastDiv.setAttribute('aria-atomic', 'true');
+        toastDiv.style.zIndex = '1060';
+
+        toastDiv.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        `;
+
+        // 添加到页面
+        document.body.appendChild(toastDiv);
+
+        // 初始化并显示toast
+        const toast = new bootstrap.Toast(toastDiv, {
+            autohide: true,
+            delay: 3000
+        });
+
+        toast.show();
+
+        // 自动移除
+        setTimeout(() => {
+            toastDiv.remove();
+        }, 3500);
+    }
+</script>
+</body>
+</html>

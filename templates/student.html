@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>学生信息管理</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .container { max-width: 1200px; }
+        .form-group { margin-bottom: 1rem; }
+        .pagination { justify-content: center; }
+        .header-actions { margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center header-actions">
+        <h2>学生信息管理</h2>
+        <!-- 首页跳转按钮 -->
+        <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+            <i class="bi bi-house-door"></i> 回到首页
+        </a>
+    </div>
+
+    <!-- 添加学生按钮 -->
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+        添加学生
+    </button>
+
+    <!-- 添加学生模态框 -->
+    <div class="modal fade" id="addStudentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">添加学生</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="addStudentForm" method="POST" action="/add_student">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="stu_sno" class="form-label">学号</label>
+                            <input type="text" class="form-control" id="stu_sno" name="stu_sno" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="stu_name" class="form-label">姓名</label>
+                            <input type="text" class="form-control" id="stu_name" name="stu_name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="stu_sex" class="form-label">性别</label>
+                            <select class="form-control" id="stu_sex" name="stu_sex" required>
+                                <option value="男">男</option>
+                                <option value="女">女</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="stu_age" class="form-label">年龄</label>
+                            <input type="number" class="form-control" id="stu_age" name="stu_age" min="1" max="100" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="stu_entrance" class="form-label">入学日期</label>
+                            <input type="date" class="form-control" id="stu_entrance" name="stu_entrance">
+                        </div>
+                        <div class="form-group">
+                            <label for="stu_grade" class="form-label">年级</label>
+                            <input type="text" class="form-control" id="stu_grade" name="stu_grade" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="stu_dept" class="form-label">系别</label>
+                            <input type="text" class="form-control" id="stu_dept" name="stu_dept" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="stu_class" class="form-label">班级</label>
+                            <input type="text" class="form-control" id="stu_class" name="stu_class" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="stu_tel" class="form-label">联系方式</label>
+                            <input type="text" class="form-control" id="stu_tel" name="stu_tel" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="dor_dno" class="form-label">寝室号</label>
+                            <select class="form-control" id="dor_dno" name="dor_dno" required>
+                                <option value="">请选择寝室</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                        <label for="checkin_date" class="form-label">入住日期</label>
+                        <input type="date" class="form-control" id="checkin_date" name="checkin_date" required>
+                    </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary" id="addSubmitBtn">提交</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 筛选表单 -->
+    <form id="filterForm" class="mt-4 row g-3" method="GET" action="{{ url_for('student_management') }}">
+        <div class="col-md-3">
+            <label for="dept" class="form-label">系别</label>
+            <select class="form-control" id="dept" name="stu_dept">
+                <option value="">全部系别</option>
+                {% for dept in departments %}
+                <option value="{{ dept }}" {% if current_dept == dept %}selected{% endif %}>{{ dept }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="grade" class="form-label">年级</label>
+            <select class="form-control" id="grade" name="stu_grade">
+                <option value="">全部年级</option>
+                {% for grade in grades %}
+                <option value="{{ grade }}" {% if current_grade == grade %}selected{% endif %}>{{ grade }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="class" class="form-label">班级</label>
+            <select class="form-control" id="class" name="stu_class">
+                <option value="">全部班级</option>
+                {% for class in classes %}
+                <option value="{{ class }}" {% if current_class == class %}selected{% endif %}>{{ class }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="dormitory" class="form-label">寝室号</label>
+            <select class="form-control" id="dormitory" name="dor_dno">
+                <option value="">全部寝室</option>
+                {% for dorm in dormitories %}
+                    <option value="{{ dorm }}" {% if current_dormitory == dorm %}selected{% endif %}>{{ dorm }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary">筛选</button>
+            <a href="{{ url_for('student_management') }}" class="btn btn-outline-secondary ms-2">重置</a>
+        </div>
+    </form>
+
+    <!-- 学生列表 -->
+    <table class="table table-striped mt-4">
+        <thead>
+            <tr>
+                <th>学号</th>
+                <th>姓名</th>
+                <th>性别</th>
+                <th>年龄</th>
+                <th>入学日期</th>
+                <th>系别</th>
+                <th>年级</th>
+                <th>班级</th>
+                <th>联系方式</th>
+                <th>寝室号</th>
+                <th>入住日期</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody id="studentTableBody">
+            {% for student in students.items %}
+            <tr data-stu-sno="{{ student.stu_sno }}">
+                <td>{{ student.stu_sno }}</td>
+                <td>{{ student.stu_name }}</td>
+                <td>{{ student.stu_sex }}</td>
+                <td>{{ student.stu_age }}</td>
+                <td>{{ student.stu_entrance }}</td>
+                <td>{{ student.stu_dept }}</td>
+                <td>{{ student.stu_grade }}</td>
+                <td>{{ student.stu_class }}</td>
+                <td>{{ student.stu_tel }}</td>
+                <td>{{ student.checkin.dor_dno if student.checkin else '' }}</td>
+                <td>{{ student.checkin.checkin_date if student.checkin else '' }}</td>
+                <td>
+                    <button class="btn btn-warning btn-sm" onclick="editStudent('{{ student.stu_sno }}')">编辑</button>
+                    <button onclick="openDeleteModal('{{ student.stu_sno }}')" class="btn btn-danger">删除</button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="9" class="text-center py-3">暂无学生数据</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- 分页组件 -->
+    <nav aria-label="Page navigation">
+        <ul class="pagination">
+            <li class="page-item {% if not students.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('student_management',
+                    page=students.prev_num,
+                    dept=current_dept,
+                    grade=current_grade,
+                    class=current_class,
+                    dor_dno=current_dormitory) }}">上一页</a>
+            </li>
+
+            {% for p in students.iter_pages(left_edge=2, left_current=2, right_current=3, right_edge=2) %}
+                {% if p %}
+                    <li class="page-item {% if p == students.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('student_management',
+                            page=p,
+                            dept=current_dept,
+                            grade=current_grade,
+                            class=current_class,
+                            dor_dno=current_dormitory) }}">{{ p }}</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+            {% endfor %}
+
+            <li class="page-item {% if not students.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('student_management',
+                    page=students.next_num,
+                    dept=current_dept,
+                    grade=current_grade,
+                    class=current_class,
+                    dor_dno=current_dormitory) }}">下一页</a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- 删除确认模态框 -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">确认删除</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>确定要删除学生 <span id="stu_sno"></span> 吗？此操作不可逆。</p>
+                <p class="text-danger">删除学生将同时删除其所有关联数据，包括寝室分配和财产记录。</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">确认删除</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- 编辑学生模态框 -->
+    <div class="modal fade" id="editStudentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">编辑学生</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="editStudentForm" method="POST" action="/edit_student">
+                     <label for="edit_stu_sno" class="form-label">学号</label>
+                    <input type="text" id="edit_stu_sno" name="edit_stu_sno" >
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="edit_stu_name" class="form-label">姓名</label>
+                            <input type="text" class="form-control" id="edit_stu_name" name="edit_stu_name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_stu_sex" class="form-label">性别</label>
+                            <select class="form-control" id="edit_stu_sex" name="edit_stu_sex" required>
+                                <option value="男">男</option>
+                                <option value="女">女</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_stu_age" class="form-label">年龄</label>
+                            <input type="number" class="form-control" id="edit_stu_age" name="edit_stu_age" min="1" max="100" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_stu_entrance" class="form-label">入学日期</label>
+                            <input type="date" class="form-control" id="edit_stu_entrance" name="edit_stu_entrance">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_stu_grade" class="form-label">年级</label>
+                            <input type="text" class="form-control" id="edit_stu_grade" name="edit_stu_grade" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_stu_dept" class="form-label">系别</label>
+                            <input type="text" class="form-control" id="edit_stu_dept" name="edit_stu_dept" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_stu_class" class="form-label">班级</label>
+                            <input type="text" class="form-control" id="edit_stu_class" name="edit_stu_class" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_stu_tel" class="form-label">联系方式</label>
+                            <input type="text" class="form-control" id="edit_stu_tel" name="edit_stu_tel" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_dor_dno" class="form-label">寝室号</label>
+                            <select class="form-control" id="edit_dor_dno" name="edit_dor_dno" required>
+                                <option value="">请选择寝室</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                        <label for="edit_checkin_date" class="form-label">入住日期</label>
+                        <input type="date" class="form-control" id="edit_checkin_date" name="edit_checkin_date" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary">保存修改</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+ // 添加学生表单提交处理
+document.getElementById('addStudentForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = this;
+    const submitBtn = form.querySelector('#addSubmitBtn');
+    const modal = bootstrap.Modal.getInstance(document.getElementById('addStudentModal'));
+
+    // 显示加载状态
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 提交中...';
+
+    // 初始化错误信息
+    let errorMessage = '';
+
+    try {
+        // 发送AJAX请求
+        const response = await fetch('/add_student', {
+            method: 'POST',
+            body: new FormData(form),
+            credentials: 'include'
+        });
+
+        // 处理HTTP状态码（不使用throw，直接判断并设置错误信息）
+        if (!response.ok) {
+            errorMessage = `HTTP错误: ${response.status}`;
+        } else {
+            // 解析响应数据
+            let data;
+            try {
+                data = await response.json();
+            } catch (parseError) {
+                const text = await response.text();
+                errorMessage = `解析响应失败: ${text.substring(0, 100)}...`;
+            }
+
+            // 处理业务逻辑
+            if (!errorMessage) {
+                if (data.success) {
+                    // 成功提示
+                    showToast('success', data.message);
+                    form.reset();
+                    modal.hide();
+                    // 刷新学生列表
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    errorMessage = data.message; // 业务错误信息
+                }
+            }
+        }
+    } catch (error) {
+        // 捕获网络等其他错误
+        errorMessage = `操作失败: ${error.message}`;
+    } finally {
+        // 恢复按钮状态
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '提交';
+
+        // 显示错误信息（如果有）
+        if (errorMessage) {
+            showToast('error', errorMessage);
+        }
+    }
+});
+
+// 存储当前要删除的学号
+let currentDeleteSno = '';
+
+// 打开删除确认模态框
+function openDeleteModal(sno) {
+    console.log("打开删除模态框，学号:", sno);
+    currentDeleteSno = sno;
+    document.getElementById('stu_sno').textContent = sno;
+    new bootstrap.Modal(document.getElementById('deleteConfirmModal')).show();
+}
+
+// 确认删除按钮的点击事件
+document.getElementById('confirmDeleteBtn').addEventListener('click', async function() {
+    console.log("点击确认删除，当前学号:", currentDeleteSno);
+    if (!currentDeleteSno) return;
+
+    try {
+        const response = await fetch(`/delete_student/${currentDeleteSno}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+        console.log("删除响应:", data);
+
+        if (response.ok) {
+            showToast('success', data.message);
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showToast('error', data.message || `删除失败（${response.status}）`);
+        }
+
+        // 关闭模态框
+        bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal')).hide();
+        currentDeleteSno = '';  // 重置当前学号
+    } catch (error) {
+        console.error("删除错误:", error);
+        showToast('error', '网络错误：' + error.message);
+    }
+});
+async function loadDormitories() {
+    try {
+        const response = await fetch('/api/dormitories');
+
+        // 处理非200响应
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`API错误: ${response.status} - ${errorText}`);
+        }
+
+        const dormitories = await response.json();
+
+        const dormSelect = document.getElementById('dor_dno');
+        const editDormSelect = document.getElementById('edit_dor_dno');
+
+        // 清空选项（保留第一个提示选项）
+        dormSelect.length = 1; // 更高效的清空方式
+        editDormSelect.length = 1;
+
+        // 过滤出未住满的寝室
+        const availableDorms = dormitories.filter(dorm => dorm.fact < dorm.num);
+
+        // 添加寝室选项（只显示未住满的）
+        availableDorms.forEach(dorm => {
+            const normalizedDno = dorm.dno.trim();
+
+            const option = document.createElement('option');
+            option.value = normalizedDno;
+            // 只显示可入住信息（不再显示已满状态）
+            option.textContent = `${normalizedDno} (${dorm.bno.trim()}号楼) - ${dorm.fact}/${dorm.num} (可入住 ${dorm.num - dorm.fact}人)`;
+
+            dormSelect.appendChild(option);
+
+            const editOption = option.cloneNode(true);
+            editDormSelect.appendChild(editOption);
+        });
+    } catch (error) {
+        console.error('加载寝室列表失败:', error);
+        showToast('error', '加载寝室列表失败，请刷新页面重试');
+    }
+}
+
+// 页面加载完成后执行
+window.addEventListener('DOMContentLoaded', () => {
+    // 加载寝室列表
+    loadDormitories();
+
+    // 设置入住日期默认值为今天
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('checkin_date').value = today;
+    document.getElementById('edit_checkin_date').value = today;
+});
+// 编辑学生逻辑
+async function editStudent(sno) {
+    try {
+        const response = await fetch(`/api/student/${sno}`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`API错误: ${response.status} - ${errorText}`);
+        }
+
+        const student = await response.json();
+        console.log("解析后的学生数据:", student);
+
+        // 填充表单 - 确保使用正确的ID
+        document.getElementById('edit_stu_sno').value = student.stu_sno;
+        document.getElementById('edit_stu_name').value = student.stu_name || '';
+        document.getElementById('edit_stu_sex').value = student.stu_sex || '';
+        document.getElementById('edit_stu_age').value = student.stu_age || '';
+        document.getElementById('edit_stu_entrance').value = student.stu_entrance || '';
+        document.getElementById('edit_stu_grade').value = student.stu_grade || '';
+        document.getElementById('edit_stu_dept').value = student.stu_dept || '';
+        document.getElementById('edit_stu_class').value = student.stu_class || '';
+        document.getElementById('edit_stu_tel').value = student.stu_tel || '';
+        setTimeout(() => {
+            document.getElementById('edit_dor_dno').value = student.checkin?.dor_dno || '';
+        }, 100);
+        document.getElementById('edit_checkin_date').value = student.checkin?.checkin_date || '';
+        // 显示模态框
+        new bootstrap.Modal(document.getElementById('editStudentModal')).show();
+    } catch (error) {
+        console.error('编辑学生失败:', error);
+        showToast('error', '操作失败：' + error.message);
+    }
+}
+// 编辑表单提交
+document.getElementById('editStudentForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const formData = new FormData(form);
+
+    // 添加防重复提交机制
+    if (submitBtn.disabled) return;
+
+    // 显示加载状态
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 保存中...';
+
+    try {
+        // 发送请求
+        const response = await fetch('/edit_student', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+        });
+
+        // 处理响应
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+                showToast('success', '修改成功！');
+
+                // 关闭模态框
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editStudentModal'));
+                if (modal) modal.hide();
+
+                // 刷新页面
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showToast('error', '修改失败：' + (data.message || '未知错误'));
+            }
+        } else {
+            const errorText = await response.text();
+            showToast('error', `请求失败: ${response.status} - ${errorText}`);
+        }
+    } catch (error) {
+        console.error("提交错误:", error);
+        showToast('error', '网络错误：' + error.message);
+    } finally {
+        // 确保总是重置按钮状态
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '保存修改';
+    }
+});
+
+// 显示通知提示
+function showToast(type, message) {
+    // 移除现有的toast
+    document.querySelectorAll('.toast').forEach(toast => toast.remove());
+
+    // 创建提示元素
+    const toastDiv = document.createElement('div');
+    toastDiv.className = `toast position-fixed top-0 end-0 m-3 ${type === 'success' ? 'bg-success' : 'bg-danger'} text-white`;
+    toastDiv.setAttribute('role', 'alert');
+    toastDiv.setAttribute('aria-live', 'assertive');
+    toastDiv.setAttribute('aria-atomic', 'true');
+    toastDiv.style.zIndex = '1060';
+
+    toastDiv.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    `;
+
+    // 添加到页面
+    document.body.appendChild(toastDiv);
+
+    // 初始化并显示toast
+    const toast = new bootstrap.Toast(toastDiv, {
+        autohide: true,
+        delay: 3000
+    });
+
+    toast.show();
+
+    // 自动移除
+    setTimeout(() => {
+        if (toastDiv.parentNode) {
+            toastDiv.remove();
+        }
+    }, 3500);
+}
+</script>
+</body>
+</html>

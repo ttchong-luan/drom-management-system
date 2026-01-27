@@ -1,0 +1,351 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">系统管理</h5>
+        <ul class="nav nav-tabs card-header-tabs">
+            <li class="nav-item">
+                <a class="nav-link active" data-bs-toggle="tab" href="#users">用户管理</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#params">参数设置</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#backup">数据备份</a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="card-body">
+        <div class="tab-content">
+            <!-- 用户管理 -->
+            <div class="tab-pane fade show active" id="users">
+                <div class="d-flex justify-content-between mb-3">
+                    <h5>用户账户管理</h5>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                        <i class="bi bi-plus-circle"></i> 添加用户
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>用户名</th>
+                                <th>角色</th>
+                                <th>创建时间</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td>{{ user.username }}</td>
+                                <td>
+                                    <span class="badge bg-{% if user.userpower == '管理员' %}primary{% else %}success{% endif %}">
+                                        {{ user.userpower }}
+                                    </span>
+                                </td>
+                                <td>2023-06-15</td>
+                                <td>
+                                    <span class="badge bg-success">启用</span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-secondary">重置密码</button>
+                                    <button class="btn btn-sm btn-outline-danger">禁用</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 参数设置 -->
+            <div class="tab-pane fade" id="params">
+                <h5 class="mb-4">系统参数设置</h5>
+
+                <form class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="building-prefix">公寓楼号前缀 *</label>
+                        <input type="text" id="building-prefix" class="form-control" value="B" required>
+                        <small class="form-text text-muted">请输入楼号前缀（如B、C）</small>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label" for="room-format">寝室号生成规则</label>
+                        <select id="room-format" class="form-select" required>
+                        <option value="" disabled selected>请选择编号格式</option>
+                        <option value="building-floor-number">楼号+层号+序号 (如B101)</option>
+                        <option value="building-three-digit">楼号+三位序号 (如B001)</option>
+                        </select>
+                        <small class="form-text text-muted">选择后将按此格式自动生成房间号</small>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label" for="accommodation-fee">默认住宿费 (元/学期)</label>
+                        <input type="number" id="accommodation-fee" class="form-control" value="1200">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label" for="room-capacity">寝室默认容量</label>
+                        <input type="number" id="room-capacity" class="form-control" value="4">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label" for="visitor-max-hours">访客最长停留时间 (小时)</label>
+                        <input type="number" id="visitor-max-hours" class="form-control" value="3">
+                    </div>
+
+                    <div class="col-md-12">
+                        <label class="form-label" for="department-list">系别列表 (每行一个)</label>
+                        <textarea id="department-list" class="form-control" rows="4">
+                            计算机科学系
+                            电子工程系
+                            机械工程系
+                            工商管理系
+                            外语系
+                            艺术设计系
+                        </textarea>
+                    </div>
+
+                    <div class="col-md-12">
+                        <label class="form-label" for="grade-list">年级列表 (每行一个)</label>
+                        <textarea id="grade-list" class="form-control" rows="3">
+                            2023级
+                            2022级
+                            2021级
+                            2020级
+                        </textarea>
+                    </div>
+
+                    <div class="col-12 mt-4">
+                        <button type="submit" class="btn btn-primary">保存设置</button>
+                        <button type="reset" class="btn btn-outline-secondary">恢复默认</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 数据备份 -->
+            <div class="tab-pane fade" id="backup">
+                <h5 class="mb-4">数据备份与恢复</h5>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0">数据备份</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">创建当前数据库的完整备份，建议每周至少备份一次。</p>
+
+                                <div class="mb-3">
+                                    <label class="form-label" for="backup-filename">备份文件名</label>
+                                    <div class="input-group">
+                                        <input type="text" id="backup-filename" class="form-control" value="dormitory_backup_{{ now.strftime('%Y%m%d') }}">
+                                        <span class="input-group-text">.bak</span>
+                                    </div>
+                                </div>
+
+                                <button class="btn btn-primary w-100" onclick="backupDatabase(Event)">
+                                    <i class="bi bi-download"></i> 立即备份
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card border-warning">
+                            <div class="card-header bg-warning text-dark">
+                                <h6 class="mb-0">数据恢复</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">从备份文件恢复数据库，此操作将覆盖当前所有数据。</p>
+
+                                <div class="mb-3">
+                                    <label class="form-label" for="backup-file-select">选择备份文件</label>
+                                       <select id="backup-file-select" class="form-select">
+                                           <option>dormitory_backup_20230625.bak</option>
+                                           <option>dormitory_backup_20230618.bak
+                                           <option>dormitory_backup_20230611.bak</option>
+                                       </select>
+                                </div>
+
+                                <button class="btn btn-warning w-100" data-bs-toggle="modal" data-bs-target="#restoreModal">
+                                    <i class="bi bi-arrow-counterclockwise"></i> 恢复数据
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">备份历史</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>备份文件</th>
+                                        <th>大小</th>
+                                        <th>备份时间</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>dormitory_backup_20230625.bak</td>
+                                        <td>15.2 MB</td>
+                                        <td>2023-06-25 02:30:15</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary">下载</button>
+                                            <button class="btn btn-sm btn-outline-danger">删除</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>dormitory_backup_20230618.bak</td>
+                                        <td>14.8 MB</td>
+                                        <td>2023-06-18 02:30:05</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary">下载</button>
+                                            <button class="btn btn-sm btn-outline-danger">删除</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>dormitory_backup_20230611.bak</td>
+                                        <td>14.5 MB</td>
+                                        <td>2023-06-11 02:30:10</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary">下载</button>
+                                            <button class="btn btn-sm btn-outline-danger">删除</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加用户模态框 -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加新用户</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_user') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="username">用户名</label>
+                        <input type="text" id="username" class="form-control" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="password">密码</label>
+                        <input type="password" id="password" class="form-control" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="confirm-password">确认密码</label>
+                        <input type="password" id="confirm-password" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="user-role">用户角色</label>
+                        <select id="user-role" class="form-select" name="role">
+                            <option value="管理员">管理员</option>
+                            <option value="宿管员">宿管员</option>
+                            <option value="学生">学生</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">添加用户</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 恢复数据确认模态框 -->
+<div class="modal fade" id="restoreModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">确认数据恢复</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <h6><i class="bi bi-exclamation-triangle-fill"></i> 警告</h6>
+                    <p>此操作将用备份文件替换当前所有数据，操作不可逆转！请确认是否继续。</p>
+                </div>
+                <p>您将恢复备份文件: <strong>dormitory_backup_20230618.bak</strong></p>
+                <p>恢复后当前所有数据将被覆盖，请确保已备份最新数据。</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-warning">确认恢复</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function backupDatabase() {
+    // 显示加载指示器
+ const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 备份中...';
+    button.disabled = true;
+
+    // 模拟备份过程
+    setTimeout(() => {
+        button.innerHTML = '<i class="bi bi-check-circle"></i> 备份成功';
+        button.classList.remove('btn-primary');
+        button.classList.add('btn-success');
+
+        // 显示成功消息
+        flashMessage('数据库备份成功！', 'success');
+
+        // 3秒后恢复按钮状态
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-primary');
+            button.disabled = false;
+        }, 3000);
+    }, 2000);
+}
+
+function flashMessage(message, type) {
+    // 在实际应用中，这里应该调用Flask的flash函数
+    // 这里仅做前端演示
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.role = 'alert';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+
+    const container = document.querySelector('.container.mt-4');
+    container.prepend(alertDiv);
+
+    // 5秒后自动消失
+    setTimeout(() => {
+        alertDiv.classList.remove('show');
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 500);
+    }, 5000);
+}
+</script>
+{% endblock %}

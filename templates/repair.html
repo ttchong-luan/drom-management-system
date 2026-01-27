@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>维修管理</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .container { max-width: 1200px; }
+
+        .header-actions { margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center header-actions">
+        <h2>维修管理</h2>
+        <!-- 首页跳转按钮 -->
+        <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+            <i class="bi bi-house-door"></i> 回到首页
+        </a>
+    </div>
+
+    <!-- 添加维修记录按钮 -->
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRepairModal">
+        添加维修记录
+    </button>
+
+    <!-- 添加维修记录模态框 -->
+    <div class="modal fade" id="addRepairModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">添加维修记录</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="addRepairForm" method="POST" action="/add_repair">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="repair-reporter">报修人</label>
+                            <input type="text" id="repair-reporter" class="form-control"
+                                   value="{{ session.get('username', '') }}"
+                                   {% if 'user_id' in session %}readonly{% endif %}>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="dormitory-number">寝室号</label>
+                            <input type="text" id="dormitory-number" class="form-control" name="dor_dno" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="repair-item">报修物品</label>
+                            <select id="repair-item" class="form-select" name="ml_pro">
+                                <option value="">选择报修物品</option>
+                                <option>水龙头</option>
+                                <option>电灯</option>
+                                <option>门锁</option>
+                                <option>空调</option>
+                                <option>热水器</option>
+                                <option>洗衣机</option>
+                                <option>插座</option>
+                                <option>其他</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="problem-description">问题描述</label>
+                            <textarea id="problem-description" class="form-control" rows="3" name="description" required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary">提交</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 维修记录列表 -->
+    <table class="table table-striped mt-4">
+        <thead>
+            <tr>
+                <th>报修单号</th>
+                <th>报修人</th>
+                <th>寝室号</th>
+                <th>报修物品</th>
+                <th>报修时间</th>
+                <th>状态</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody id="repairTableBody">
+            {% for repair in repairs %}
+            <tr data-repair-id="{{ repair.id }}">
+                <td>R{{ repair.ml_time.strftime('%Y%m%d') }}{{ loop.index }}</td>
+                <td>{{ repair.stu_sno }}</td>
+                <td>{{ repair.dor_dno }}</td>
+                <td>{{ repair.ml_pro }}</td>
+                <td>{{ repair.ml_time.strftime('%m-%d %H:%M') }}</td>
+                <td>
+                    {% if repair.ml_repair == '未处理' %}
+                    <span class="badge bg-danger">待处理</span>
+                    {% else %}
+                    <span class="badge bg-success">已处理</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <button class="btn btn-warning btn-sm" onclick="editRepair('{{ repair.id }}')">编辑</button>
+                    <button onclick="deleteRepair('{{ repair.id }}')" class="btn btn-danger">删除</button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" class="text-center py-3">暂无维修记录</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- 编辑维修记录模态框 -->
+    <div class="modal fade" id="editRepairModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">编辑维修记录</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="editRepairForm" method="POST" action="/edit_repair">
+                    <input type="hidden" id="repair_id" name="repair_id">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="edit_dormitory-number">寝室号</label>
+                            <input type="text" id="edit_dormitory-number" class="form-control" name="dor_dno" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="edit_repair-item">报修物品</label>
+                            <select id="edit_repair-item" class="form-select" name="ml_pro">
+                                <option value="">选择报修物品</option>
+                                <option>水龙头</option>
+                                <option>电灯</option>
+                                <option>门锁</option>
+                                <option>空调</option>
+                                <option>热水器</option>
+                                <option>洗衣机</option>
+                                <option>插座</option>
+                                <option>其他</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="edit_status">状态</label>
+                            <select id="edit_status" class="form-select" name="ml_repair">
+                                <option value="未处理">未处理</option>
+                                <option value="已处理">已处理</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="edit_problem-description">问题描述</label>
+                            <textarea id="edit_problem-description" class="form-control" rows="3" name="description" required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary">保存修改</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // 添加维修记录表单提交处理
+    document.getElementById('addRepairForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const form = this;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addRepairModal'));
+
+        // 显示加载状态
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 提交中...';
+
+        try {
+            const response = await fetch('/add_repair', {
+                method: 'POST',
+                body: new FormData(form),
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                alert('报修申请已提交');
+                modal.hide();
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                alert('提交失败');
+            }
+        } catch (error) {
+            alert('网络错误：' + error.message);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '提交';
+        }
+    });
+
+    // 删除维修记录
+    async function deleteRepair(repair_id) {
+        if (confirm('确定要删除该维修记录吗？此操作不可逆。')) {
+            try {
+                const response = await fetch(`/delete_repair/${repair_id}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert(data.message);
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    alert(data.message || `删除失败（${response.status}）`);
+                }
+            } catch (error) {
+                alert('网络错误：' + error.message);
+            }
+        }
+    }
+
+    // 编辑维修记录逻辑
+    async function editRepair(repair_id) {
+        try {
+            const response = await fetch(`/api/repair/${repair_id}`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            const repair = await response.json();
+
+            // 填充表单
+            document.getElementById('repair_id').value = repair.id;
+            document.getElementById('edit_dormitory-number').value = repair.dor_dno;
+            document.getElementById('edit_repair-item').value = repair.ml_pro;
+            document.getElementById('edit_status').value = repair.ml_repair;
+            document.getElementById('edit_problem-description').value = repair.description;
+
+            // 显示模态框
+            new bootstrap.Modal(document.getElementById('editRepairModal')).show();
+        } catch (error) {
+            alert('操作失败：' + error.message);
+        }
+    }
+
+    // 编辑维修记录表单提交处理
+    document.getElementById('editRepairForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const form = this;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editRepairModal'));
+
+        // 显示加载状态
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 保存中...';
+
+        try {
+            const response = await fetch('/edit_repair', {
+                method: 'POST',
+                body: new FormData(form),
+                credentials: 'include'
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                alert(data.message);
+                modal.hide();
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                alert(data.message);
+            }
+        } catch (error) {
+            alert('网络错误：' + error.message);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '保存修改';
+        }
+    });
+</script>
+</body>
+</html>

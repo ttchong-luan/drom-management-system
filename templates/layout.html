@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生宿舍管理系统</title>
+   <style>
+        body {
+            background-color: lightblue;
+        }
+
+        .badge {
+            font-weight: 500;
+        }
+    </style>
+    <!-- Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="{{ url_for('static',filename='css/bootstrap@5.3.0_dist_css_bootstrap.css') }}">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="{{ url_for('static',filename='css/bootstrap-icons.css') }}">
+
+    <!-- 自定义CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- 页面特定CSS -->
+    {% block css %}{% endblock %}
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+                <i class="bi bi-house-door me-2"></i>
+                <span>宿舍管理系统</span>
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.path == url_for('index') }}"
+                           href="{{ url_for('index') }}">
+                            <i class="bi bi-speedometer2 me-1"></i> 首页
+                        </a>
+                    </li>
+                {% if session.get('user_role') == '学生' %}
+    <li class="nav-item">
+        <a class="nav-link {{ 'active' if request.path == url_for('student_management') }}"
+           href="{{ url_for('student_management') }}">
+            <i class="bi bi-person me-1"></i> 我的信息
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {{ 'active' if request.path == url_for('repair_management') }}"
+           href="{{ url_for('repair_management') }}">
+            <i class="bi bi-tools me-1"></i> 报修
+        </a>
+    </li>
+                {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.path == url_for('student_management') }}"
+                           href="{{ url_for('student_management') }}">
+                            <i class="bi bi-people me-1"></i> 学生管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.path == url_for('dormitory_management') }}"
+                           href="{{ url_for('dormitory_management') }}">
+                            <i class="bi bi-door-closed me-1"></i> 寝室管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.path == url_for('building_management') }}"
+                           href="{{ url_for('building_management') }}">
+                            <i class="bi bi-building me-1"></i> 公寓楼管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.path == url_for('building_property_management') }}"
+                           href="{{ url_for('building_property_management') }}">
+                            <i class="bi bi-box-seam me-1"></i> 公寓财产管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.path == url_for('access_management') }}"
+                           href="{{ url_for('access_management') }}">
+                            <i class="bi bi-clipboard-check me-1"></i> 访客登记
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.path == url_for('repair_management') }}"
+                           href="{{ url_for('repair_management') }}">
+                            <i class="bi bi-tools me-1"></i> 维修管理
+                        </a>
+                    </li>
+
+
+
+                {% endif %}
+                </ul>
+
+                <div class="d-flex align-items-center">
+                    <span class="navbar-text me-3 d-none d-md-block">
+                        <i class="bi bi-person-circle me-1"></i>
+                        {{ session.get('username', '游客') }}
+                        <span class="badge bg-light text-dark ms-2">{{ session.get('user_role', '未登录') }}</span>
+                    </span>
+                    <a href="{{ url_for('logout') }}" class="btn btn-outline-light">
+                        <i class="bi bi-box-arrow-right me-1"></i> 退出
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容区 -->
+    <div class="container mt-4">
+        <!-- 消息提示 -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- 页面内容 -->
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="footer mt-5 py-4 bg-light border-top">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 mb-3 mb-md-0">
+                    <h5 class="mb-3">学生宿舍管理系统</h5>
+                    <p class="text-muted">
+                        提供全面的宿舍管理解决方案，包括学生管理、寝室分配、财产管理和出入登记等功能。
+                    </p>
+                </div>
+                <div class="col-md-3 mb-3 mb-md-0">
+                    <h5 class="mb-3">快速链接</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{{ url_for('index') }}" class="text-decoration-none text-muted">首页</a></li>
+                        <li><a href="{{ url_for('student_management') }}" class="text-decoration-none text-muted">学生管理</a></li>
+                        <li><a href="{{ url_for('dormitory_management') }}" class="text-decoration-none text-muted">寝室管理</a></li>
+                        <li><a href="{{ url_for('repair_management') }}" class="text-decoration-none text-muted">报修系统</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h5 class="mb-3">联系我们</h5>
+                    <ul class="list-unstyled">
+                        <li class="text-muted"><i class="bi bi-telephone me-2"></i> 123-456-7890</li>
+                        <li class="text-muted"><i class="bi bi-envelope me-2"></i> support@dorm.com</li>
+                        <li class="text-muted"><i class="bi bi-geo-alt me-2"></i> 大学路123号</li>
+                    </ul>
+                </div>
+            </div>
+            <hr>
+            <div class="text-center text-muted">
+                <p class="mb-0">学生宿舍管理系统 &copy; 2023 - 版权所有</p>
+                <p class="small mb-0">版本 1.0.0 | 最后更新: 2023-06-25</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="{{ url_for('static',filename='js/bootstrap.bundle.js')}}"></script>
+
+    <!-- Chart.js -->
+    <script src="{{ url_for('static',filename='js/http_cdn.jsdelivr.net_npm_chart.js')}}"></script>
+
+    <!-- 页面特定JS -->
+    {% block js %}{% endblock %}
+</body>
+</html>
