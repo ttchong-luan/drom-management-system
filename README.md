@@ -13,14 +13,4 @@
 2. 宿舍信息管理：楼栋/房间/床位信息展示、分配与调整；
 3. 报修管理：报修申请、进度查询、宿管接单处理；
 4. 公告管理：公告发布、查看、分类展示；
-## 本地运行步骤
-1. 克隆仓库
-```bash
-git clone https://github.com/ttchong-luan/drom-management-system.git
-2.进入项目目录
-cd drom-management-system
-3.安装依赖
-npm install
-4.启动开发服务器
-npm run dev
-5.访问地址：http://localhost:5173
+
